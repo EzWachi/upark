@@ -1,0 +1,312 @@
+// Modelo de datos de UPark. Cada tabla cita los casos de uso (CU-xx) y reglas
+// (RN-xx) de docs/ que la justifican. Nombres en español y snake_case.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// RN-21. El super admin hereda todo lo del admin.
+enum rol_usuario {
+  miembro
+  guarda
+  admin
+  super_admin
+}
+
+/// RN-12. Guardas y administradores nacen `aprobada` porque los crea un admin.
+enum estado_cuenta {
+  sin_verificar
+  pendiente
+  aprobada
+  rechazada
+  desactivada
+}
+
+/// RN-03. Invitados y visitas sin reserva cuentan como `visita`.
+enum tipo_persona {
+  estudiante
+  profesor
+  funcionario
+  visita
+}
+
+/// RN-17.
+enum tipo_identificacion {
+  cedula
+  dimex
+  didi
+  pasaporte
+}
+
+/// RN-02. El orden importa: de menor a mayor.
+enum tamano_vehiculo {
+  moto
+  sedan
+  suv
+  grande
+}
+
+/// RN-18.
+enum origen_placa {
+  nacional
+  extranjera
+}
+
+enum tipo_invitacion {
+  individual
+  evento
+}
+
+/// `no_se_presento` no se guarda: se calcula con la hora (CU-37, RN-07).
+enum estado_reserva {
+  confirmada
+  usada
+  cancelada
+}
+
+enum origen_entrada {
+  qr_miembro
+  qr_reserva
+  manual
+}
+
+enum tipo_token {
+  verificacion
+  recuperacion
+  acceso
+}
+
+/// Miembros, guardas y administradores. Los invitados no tienen cuenta (CU-08).
+model usuarios {
+  id                    String               @id @default(cuid())
+  nombre                String
+  correo                String               @unique
+  password_hash         String?
+  rol                   rol_usuario          @default(miembro)
+  estado                estado_cuenta        @default(sin_verificar)
+  /// Solo miembros. Lo confirma el admin al aprobar (CU-22).
+  tipo_persona          tipo_persona?
+  tipo_identificacion   tipo_identificacion?
+  identificacion        String?
+  /// RN-04. Lo aprueba un admin (CU-23).
+  preferencial          Boolean              @default(false)
+  /// RN-13. Token opaco del QR y su código corto. Se regeneran juntos (CU-05).
+  token_tarjeta         String?              @unique
+  codigo_tarjeta        String?              @unique
+  correo_verificado_at  DateTime?
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @updatedAt
+
+  vehiculos             vehiculos[]
+  tokens                tokens_correo[]
+  movimientos           movimientos[]        @relation("movimiento_miembro")
+  entradas_registradas  movimientos[]        @relation("movimiento_guarda_entrada")
+  salidas_registradas   movimientos[]        @relation("movimiento_guarda_salida")
+  anulaciones           movimientos[]        @relation("movimiento_anulado_por")
+  invitaciones_creadas  invitaciones[]
+  auditoria             auditoria[]
+
+  @@unique([tipo_identificacion, identificacion])
+}
+
+/// Enlaces de verificación de correo, recuperación de contraseña y primer
+/// acceso de guardas y administradores (CU-02, CU-03, CU-24, CU-32).
+model tokens_correo {
+  id          String     @id @default(cuid())
+  usuario_id  String
+  usuario     usuarios   @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  tipo        tipo_token
+  /// Se guarda el hash: quien lea la base no puede usar el enlace.
+  token_hash  String     @unique
+  expira_at   DateTime
+  usado_at    DateTime?
+  created_at  DateTime   @default(now())
+}
+
+/// CU-04. Una misma placa puede estar en varias cuentas (vehículo familiar).
+model vehiculos {
+  id           String          @id @default(cuid())
+  usuario_id   String
+  usuario      usuarios        @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  origen       origen_placa
+  /// Solo placas extranjeras.
+  pais         String?
+  /// Normalizada: mayúsculas, sin espacios ni guiones (RN-18).
+  placa        String
+  tamano       tamano_vehiculo
+  descripcion  String?
+  principal    Boolean         @default(false)
+  created_at   DateTime        @default(now())
+
+  @@unique([usuario_id, placa])
+  @@index([placa])
+}
+
+/// CU-30.
+model parqueos {
+  id                   String        @id @default(cuid())
+  nombre               String        @unique
+  descripcion          String?
+  foto_url             String?
+  activo               Boolean       @default(false)
+  /// CU-17.
+  fila                 Int           @default(0)
+  fila_actualizada_at  DateTime?
+  created_at           DateTime      @default(now())
+
+  zonas                zonas[]
+  movimientos          movimientos[] @relation("movimiento_parqueo")
+  salidas              movimientos[] @relation("movimiento_parqueo_salida")
+}
+
+/// CU-31. Los cupos por tamaño van en columnas: son cuatro tamaños fijos.
+model zonas {
+  id                String         @id @default(cuid())
+  parqueo_id        String
+  parqueo           parqueos       @relation(fields: [parqueo_id], references: [id])
+  nombre            String
+  /// RN-03.
+  tipos_permitidos  tipo_persona[]
+  /// RN-04.
+  preferencial      Boolean        @default(false)
+  /// Si se pueden crear invitaciones en esta zona (CU-25, CU-26).
+  reservable        Boolean        @default(false)
+  activa            Boolean        @default(true)
+  cupos_moto        Int            @default(0)
+  cupos_sedan       Int            @default(0)
+  cupos_suv         Int            @default(0)
+  cupos_grande      Int            @default(0)
+  created_at        DateTime       @default(now())
+
+  movimientos       movimientos[]
+  invitaciones      invitaciones[]
+
+  @@unique([parqueo_id, nombre])
+}
+
+/// Entradas y salidas (CU-12, CU-13, CU-14). Copia los datos de la persona
+/// porque las visitas sin reserva no tienen cuenta ni reserva.
+///
+/// RN-01: la migración `inicial` agrega un índice único parcial sobre `placa`
+/// para los movimientos abiertos y no anulados. Prisma no permite declararlo aquí.
+model movimientos {
+  id                   String               @id @default(cuid())
+  placa                String
+  origen_placa         origen_placa
+  pais                 String?
+  tamano_vehiculo      tamano_vehiculo
+  /// Tamaño del cupo que ocupa; puede ser mayor que el del vehículo (RN-02).
+  tamano_cupo          tamano_vehiculo
+  persona_nombre       String
+  tipo_persona         tipo_persona
+  tipo_identificacion  tipo_identificacion?
+  identificacion       String?
+  origen               origen_entrada
+  /// RN-05.
+  sobrecupo            Boolean              @default(false)
+
+  usuario_id           String?
+  usuario              usuarios?            @relation("movimiento_miembro", fields: [usuario_id], references: [id])
+  reserva_id           String?              @unique
+  reserva              reservas?            @relation(fields: [reserva_id], references: [id])
+  parqueo_id           String
+  parqueo              parqueos             @relation("movimiento_parqueo", fields: [parqueo_id], references: [id])
+  zona_id              String
+  zona                 zonas                @relation(fields: [zona_id], references: [id])
+
+  entrada_at           DateTime             @default(now())
+  guarda_entrada_id    String
+  guarda_entrada       usuarios             @relation("movimiento_guarda_entrada", fields: [guarda_entrada_id], references: [id])
+
+  salida_at            DateTime?
+  guarda_salida_id     String?
+  guarda_salida        usuarios?            @relation("movimiento_guarda_salida", fields: [guarda_salida_id], references: [id])
+  /// Solo si salió por otro parqueo (CU-14, 3b).
+  parqueo_salida_id    String?
+  parqueo_salida       parqueos?            @relation("movimiento_parqueo_salida", fields: [parqueo_salida_id], references: [id])
+
+  /// RN-16: se anula, no se borra.
+  anulado_at           DateTime?
+  anulado_por_id       String?
+  anulado_por          usuarios?            @relation("movimiento_anulado_por", fields: [anulado_por_id], references: [id])
+  motivo_anulacion     String?
+
+  @@index([parqueo_id, salida_at])
+  @@index([zona_id, salida_at])
+  @@index([placa])
+}
+
+/// CU-25, CU-26. Aparta `cupos` en la zona durante la franja (RN-07).
+model invitaciones {
+  id                 String          @id @default(cuid())
+  tipo               tipo_invitacion
+  /// Motivo (individual) o nombre del evento.
+  motivo             String
+  zona_id            String
+  zona               zonas           @relation(fields: [zona_id], references: [id])
+  inicio_at          DateTime
+  fin_at             DateTime
+  /// 1 si es individual (RN-10).
+  cupos              Int             @default(1)
+  /// Vencimiento del enlace.
+  inscripcion_hasta  DateTime
+  /// Token del enlace. Se guarda en claro porque el admin vuelve a verlo (CU-27).
+  token              String          @unique
+  nombre_invitado    String?
+  correo_invitado    String?
+  creada_por_id      String
+  creada_por         usuarios        @relation(fields: [creada_por_id], references: [id])
+  cancelada_at       DateTime?
+  created_at         DateTime        @default(now())
+
+  reservas           reservas[]
+
+  @@index([zona_id, inicio_at])
+}
+
+/// CU-08, CU-09.
+model reservas {
+  id                     String              @id @default(cuid())
+  invitacion_id          String
+  invitacion             invitaciones        @relation(fields: [invitacion_id], references: [id])
+  nombre                 String
+  correo                 String
+  tipo_identificacion    tipo_identificacion
+  identificacion         String
+  origen_placa           origen_placa
+  pais                   String?
+  placa                  String
+  tamano                 tamano_vehiculo
+  requiere_preferencial  Boolean             @default(false)
+  /// RN-13.
+  token_qr               String              @unique
+  codigo                 String              @unique
+  estado                 estado_reserva      @default(confirmada)
+  cancelada_at           DateTime?
+  created_at             DateTime            @default(now())
+
+  movimiento             movimientos?
+
+  /// RN-10: una reserva por identificación en cada invitación.
+  @@unique([invitacion_id, tipo_identificacion, identificacion])
+}
+
+/// RN-16.
+model auditoria {
+  id          String   @id @default(cuid())
+  usuario_id  String
+  usuario     usuarios @relation(fields: [usuario_id], references: [id])
+  accion      String
+  entidad     String
+  entidad_id  String
+  motivo      String?
+  datos       Json?
+  created_at  DateTime @default(now())
+
+  @@index([entidad, entidad_id])
+}
