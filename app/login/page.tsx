@@ -31,6 +31,14 @@ export default function Login() {
           {pendiente ? "Entrando…" : "Entrar"}
         </button>
       </form>
+      <div className="mt-6 flex justify-between text-sm">
+        <Link href="/registro" className="underline">
+          Crear cuenta
+        </Link>
+        <Link href="/recuperar" className="underline">
+          Olvidé mi contraseña
+        </Link>
+      </div>
     </main>
   );
 }

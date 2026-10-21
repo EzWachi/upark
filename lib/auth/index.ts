@@ -18,6 +18,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // request (lib/auth/sesion.ts) porque un JWT no se puede revocar.
   session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
   pages: { signIn: "/login" },
+  // Una contraseña equivocada es un caso normal, no un error del servidor.
+  logger: {
+    error(error) {
+      if (error.name !== "CredentialsSignin") console.error(error);
+    },
+  },
   providers: [
     Credentials({
       credentials: { correo: {}, password: {} },

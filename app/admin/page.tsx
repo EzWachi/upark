@@ -1,16 +1,22 @@
 import Link from "next/link";
 import { Area } from "@/components/area";
 
-const ENLACES_SUPER_ADMIN = [{ href: "/admin/parqueos", titulo: "Parqueos y zonas", detalle: "CU-30, CU-31" }];
+const ENLACES_ADMIN = [
+  { href: "/admin/miembros", titulo: "Miembros", detalle: "Aprobar solicitudes y gestionar cuentas" },
+  { href: "/admin/guardas", titulo: "Guardas", detalle: "Crear, desactivar y reenviar acceso" },
+];
 
-// Admin y super admin. Los enlaces de admin (miembros, guardas, invitaciones)
-// se agregan cuando existan sus pantallas.
+const ENLACES_SUPER_ADMIN = [
+  { href: "/admin/parqueos", titulo: "Parqueos y zonas", detalle: "Capacidad y distribución" },
+  { href: "/admin/administradores", titulo: "Administradores", detalle: "Asignar y quitar roles" },
+];
+
+// Admin y super admin (el super admin ve también sus propias secciones).
 export default function Admin() {
   return (
     <Area titulo="Administración" roles={["admin"]}>
       {(usuario) => {
-        const enlaces = usuario.rol === "super_admin" ? ENLACES_SUPER_ADMIN : [];
-        if (enlaces.length === 0) return <p className="text-neutral-500">Aquí irán miembros, guardas e invitaciones.</p>;
+        const enlaces = usuario.rol === "super_admin" ? [...ENLACES_ADMIN, ...ENLACES_SUPER_ADMIN] : ENLACES_ADMIN;
         return (
           <ul className="grid gap-3 sm:grid-cols-2">
             {enlaces.map((e) => (
