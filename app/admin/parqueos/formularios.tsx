@@ -1,26 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { Mensaje, estiloBoton, estiloInput } from "@/components/mensaje";
-import type { Resultado } from "./actions";
-
-type Accion = (prev: Resultado, form: FormData) => Promise<Resultado>;
-
-/**
- * React limpia el formulario después de cada acción. Si hubo error, se guarda
- * lo que se envió para volver a mostrarlo y que la persona no tenga que
- * escribir todo de nuevo.
- */
-function useFormulario(accion: Accion) {
-  const [estado, enviar, pendiente] = useActionState(
-    async (prev: { resultado: Resultado; enviado: FormData | null } | null, form: FormData) => {
-      const resultado = await accion(prev?.resultado ?? null, form);
-      return { resultado, enviado: resultado?.error ? form : null };
-    },
-    null,
-  );
-  return { resultado: estado?.resultado ?? null, enviado: estado?.enviado ?? null, enviar, pendiente };
-}
+import { useFormulario, type Accion } from "@/components/formulario";
 
 const TIPOS = [
   ["estudiante", "Estudiantes"],

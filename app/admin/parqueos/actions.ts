@@ -3,8 +3,10 @@
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { db } from "@/lib/db";
+import type { Resultado } from "@/components/formulario";
+import { esDuplicado as nombreRepetido, primerError } from "@/lib/acciones";
 import { exigirRol } from "@/lib/auth/sesion";
-import { Prisma } from "@/lib/generated/prisma/client";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import {
   esquemaParqueo,
   esquemaZona,
@@ -13,15 +15,6 @@ import {
   validarCambioZona,
   validarEstadoParqueo,
 } from "@/lib/reglas/zonas";
-
-export type Resultado = { error?: string; aviso?: string; ok?: string } | null;
-
-const nombreRepetido = (e: unknown) =>
-  e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
-
-function primerError(error: { issues: { message: string }[] }): Resultado {
-  return { error: error.issues[0]?.message ?? "Datos inválidos" };
-}
 
 function leerZona(form: FormData) {
   return esquemaZona.safeParse({
