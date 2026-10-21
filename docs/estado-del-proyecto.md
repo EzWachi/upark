@@ -48,8 +48,8 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 | [#1](https://github.com/EzWachi/upark/pull/1) | Esqueleto: modelo de datos completo, migración inicial (con el índice de RN-01), login por rol, áreas protegidas, disponibilidad pública (CU-01) | Fusionado |
 | [#2](https://github.com/EzWachi/upark/pull/2) | CI (lint, pruebas, build); gestión de parqueos y zonas (CU-30, CU-31) | Fusionado |
 | [#3](https://github.com/EzWachi/upark/pull/3) | Registro y verificación de correo (CU-02), recuperar contraseña (CU-03), aprobación de miembros (CU-22), guardas (CU-24), administradores (CU-32); correo por consola | Fusionado |
-| [#4](https://github.com/EzWachi/upark/pull/4) | Panel del guarda: turno (CU-11), entrada manual (CU-13), salida (CU-14), búsqueda (CU-15), vehículos dentro (CU-16), fila (CU-17), anular (CU-18) | Abierto, CI en verde |
-| [#5](https://github.com/EzWachi/upark/pull/5) | Mis vehículos (CU-04), tarjeta virtual (CU-05), entrada por QR o código (CU-12, miembros); este documento | Abierto, encima del #4 |
+| [#4](https://github.com/EzWachi/upark/pull/4) | Panel del guarda: turno (CU-11), entrada manual (CU-13), salida (CU-14), búsqueda (CU-15), vehículos dentro (CU-16), fila (CU-17), anular (CU-18) | Fusionado |
+| [#5](https://github.com/EzWachi/upark/pull/5) | Mis vehículos (CU-04), tarjeta virtual (CU-05), entrada por QR o código (CU-12, miembros); este documento | Fusionado |
 
 ### Estado de los casos de uso Must
 
@@ -58,14 +58,14 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 | CU-01 Consultar disponibilidad | Hecho |
 | CU-02 Registrarse | Hecho |
 | CU-03 Iniciar sesión y recuperar contraseña | Hecho, sin bloqueo tras 5 intentos (2b) y sin cerrar otras sesiones al cambiar la contraseña |
-| CU-04 Mis vehículos | En PR #5 |
-| CU-05 Tarjeta virtual | En PR #5 |
+| CU-04 Mis vehículos | Hecho |
+| CU-05 Tarjeta virtual | Hecho |
 | CU-08 Reservar cupo por enlace | **Pendiente** |
 | CU-09 Recibir QR de reserva | **Pendiente** |
-| CU-11 Parqueo del turno | En PR #4 |
-| CU-12 Entrada por QR | Miembros en PR #5; **reservas pendientes** |
-| CU-13 a CU-17 | En PR #4 |
-| CU-18 Anular registro | En PR #4; anular registros de otros días (solo admin) sin pantalla |
+| CU-11 Parqueo del turno | Hecho |
+| CU-12 Entrada por QR | Hecho para miembros; **reservas pendientes** |
+| CU-13 a CU-17 | Hecho |
+| CU-18 Anular registro | Hecho; anular registros de otros días (solo admin) sin pantalla |
 | CU-22 Aprobar miembros | Hecho |
 | CU-24 Gestionar guardas | Hecho |
 | CU-25 Invitación individual | **Pendiente** |
@@ -102,13 +102,8 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 
 ### Inmediato
 
-1. **Fusionar los PRs #4 y #5, en este orden:**
-   1. Fusionar el #4 sin borrar su rama.
-   2. Cambiar la base del #5 a `main`, para que corra su CI.
-   3. Fusionar el #5 cuando el CI pase.
-   4. Borrar la rama del #4.
-2. **Probar el escaneo con la cámara** en un teléfono, con https (Vercel o `next dev --experimental-https`).
-3. **Invitar a los compañeros** al repositorio.
+1. **Probar el escaneo con la cámara** en un teléfono, con https (Vercel o `next dev --experimental-https`).
+2. **Invitar a los compañeros** al repositorio.
 
 ### Casos de uso Must que faltan
 
