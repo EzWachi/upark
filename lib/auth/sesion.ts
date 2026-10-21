@@ -1,11 +1,15 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import type { rol_usuario } from "@/lib/generated/prisma/enums";
 
 /** El usuario de la sesión leído de la base, una vez por request. */
 export const usuarioActual = cache(async () => {
+  // Auth.js usa crypto.getRandomValues() antes de leer las cookies; con
+  // cacheComponents eso tiene que ocurrir en el request, no al prerenderizar.
+  await connection();
   const session = await auth();
   if (!session?.user?.id) return null;
   return db.usuarios.findUnique({ where: { id: session.user.id } });
