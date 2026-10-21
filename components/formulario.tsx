@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState, type FormEvent } from "react";
 
 export type Resultado = { error?: string; aviso?: string; ok?: string } | null;
 export type Accion = (prev: Resultado, form: FormData) => Promise<Resultado>;
@@ -27,5 +27,15 @@ export function useFormulario(accion: Accion) {
     pendiente,
     /** Valor a mostrar en un campo de texto: lo enviado si hubo error, o el inicial. */
     valor: (campo: string, inicial = "") => (enviado ? String(enviado.get(campo) ?? "") : inicial),
+    /**
+     * Para `onSubmit` en vez de `action`: envía sin que React limpie el
+     * formulario. Hace falta cuando hay campos controlados con useState, porque
+     * la limpieza los deja mostrando otra cosa que la que tiene el estado.
+     */
+    alEnviar: (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const form = new FormData(e.currentTarget);
+      startTransition(() => enviar(form));
+    },
   };
 }

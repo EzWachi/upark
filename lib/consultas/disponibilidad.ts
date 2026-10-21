@@ -11,11 +11,11 @@ import {
 
 const vacio = (): PorTamano => ({ moto: 0, sedan: 0, suv: 0, grande: 0 });
 
-/** CU-36: disponibilidad por zona y tamaño de todos los parqueos activos. */
-export async function disponibilidadParqueos(ahora: Date) {
+/** CU-36: disponibilidad por zona y tamaño de los parqueos activos (o de uno solo). */
+export async function disponibilidadParqueos(ahora: Date, parqueoId?: string) {
   const [parqueos, ocupados, invitaciones] = await Promise.all([
     db.parqueos.findMany({
-      where: { activo: true },
+      where: { activo: true, ...(parqueoId && { id: parqueoId }) },
       orderBy: { nombre: "asc" },
       include: { zonas: { where: { activa: true }, orderBy: { nombre: "asc" } } },
     }),
