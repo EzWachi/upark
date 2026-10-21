@@ -8,6 +8,7 @@ import {
   disponibilidadZona,
   estadoReserva,
   finDelDiaCR,
+  inicioDelDiaCR,
   libresParaPublico,
   puedeUsarCupo,
 } from "./disponibilidad";
@@ -75,6 +76,9 @@ describe("disponibilidad (RN-06)", () => {
   it("fin del día en hora de Costa Rica", () => {
     // 2026-11-10 23:00 en CR es 2026-11-11 05:00 UTC: sigue siendo el día 10.
     expect(finDelDiaCR(new Date("2026-11-11T05:00:00Z")).toISOString()).toBe("2026-11-11T05:59:59.999Z");
+  });
+  it("inicio del día en hora de Costa Rica", () => {
+    expect(inicioDelDiaCR(new Date("2026-11-11T05:00:00Z")).toISOString()).toBe("2026-11-10T06:00:00.000Z");
   });
 });
 

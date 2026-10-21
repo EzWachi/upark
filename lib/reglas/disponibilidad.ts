@@ -12,6 +12,13 @@ const MINUTO = 60_000;
 /** Costa Rica está en UTC-6 todo el año (no usa horario de verano). */
 const DESFASE_CR = 6 * 60 * MINUTO;
 
+/** Primer instante del día calendario de Costa Rica que contiene `ahora`. */
+export function inicioDelDiaCR(ahora: Date): Date {
+  const local = new Date(ahora.getTime() - DESFASE_CR);
+  local.setUTCHours(0, 0, 0, 0);
+  return new Date(local.getTime() + DESFASE_CR);
+}
+
 /** Último instante del día calendario de Costa Rica que contiene `ahora`. */
 export function finDelDiaCR(ahora: Date): Date {
   const local = new Date(ahora.getTime() - DESFASE_CR);
