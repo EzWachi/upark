@@ -50,7 +50,7 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 | [#3](https://github.com/EzWachi/upark/pull/3) | Registro y verificación de correo (CU-02), recuperar contraseña (CU-03), aprobación de miembros (CU-22), guardas (CU-24), administradores (CU-32); correo por consola | Fusionado |
 | [#4](https://github.com/EzWachi/upark/pull/4) | Panel del guarda: turno (CU-11), entrada manual (CU-13), salida (CU-14), búsqueda (CU-15), vehículos dentro (CU-16), fila (CU-17), anular (CU-18) | Fusionado |
 | [#5](https://github.com/EzWachi/upark/pull/5) | Mis vehículos (CU-04), tarjeta virtual (CU-05), entrada por QR o código (CU-12, miembros); este documento | Fusionado |
-| #6 | Invitaciones (CU-25 a CU-27), reserva del invitado (CU-08, CU-09) y entrada con reserva (CU-12) | En revisión |
+| [#6](https://github.com/EzWachi/upark/pull/6) | Invitaciones (CU-25 a CU-27), reserva del invitado (CU-08, CU-09) y entrada con reserva (CU-12) | Fusionado |
 
 ### Estado de los casos de uso Must
 
