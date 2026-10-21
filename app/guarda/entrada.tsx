@@ -46,6 +46,7 @@ export function EntradaManual({ zonas }: { zonas: ZonaConCupos[] }) {
       className="space-y-3"
       // onSubmit y no action: con action React limpia el formulario y los
       // radios controlados de origen quedan desmarcados.
+      method="post"
       onSubmit={(e) => {
         e.preventDefault();
         const placa = String(new FormData(e.currentTarget).get("placa"));
@@ -118,7 +119,7 @@ function PersonaYZona({
   const { opciones, sugerida } = opcionesDeZona(zonas, persona, tamanoEfectivo);
 
   return (
-    <form onSubmit={alEnviar} className="space-y-4">
+    <form method="post" onSubmit={alEnviar} className="space-y-4">
       <input type="hidden" name="origen" value={origen} />
       <input type="hidden" name="pais" value={pais} />
       <input type="hidden" name="placa" value={consulta.placa} />

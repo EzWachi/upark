@@ -1,21 +1,14 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import type { Resultado } from "@/components/formulario";
 import { exigirRol } from "@/lib/auth/sesion";
 import { db } from "@/lib/db";
 import { correoResolucion } from "@/lib/notificaciones";
-import { generarCodigoCorto } from "@/lib/reglas/cuentas";
+import { nuevaTarjeta } from "@/lib/tarjeta";
 
 const tipoMiembro = z.enum(["estudiante", "profesor", "funcionario"], "Elige un tipo de persona");
-
-/** RN-13: tarjeta nueva. ponytail: sin reintento si el código choca (1 en ~887 millones). */
-const nuevaTarjeta = () => ({
-  token_tarjeta: randomBytes(24).toString("base64url"),
-  codigo_tarjeta: generarCodigoCorto(),
-});
 
 async function miembro(id: string) {
   return db.usuarios.findFirst({ where: { id, rol: "miembro" } });

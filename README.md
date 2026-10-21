@@ -23,6 +23,7 @@ Proyecto del curso **16-0629 Metodologías Ágiles de Desarrollo** (ULACIT, III 
 | [Administración](docs/casos-de-uso/administracion.md) | CU-22, CU-24 a CU-27, CU-30 a CU-32 |
 | [Sistema](docs/casos-de-uso/sistema.md) | CU-36 a CU-38 |
 | [Reglas de negocio](docs/reglas-de-negocio.md) | Reglas RN-xx, supuestos y pendientes |
+| [Estado del proyecto](docs/estado-del-proyecto.md) | Qué está hecho, qué está en revisión y qué falta |
 | [Decisiones](docs/decisiones/) | Registro de decisiones de arquitectura (ADR), empezando por el [stack](docs/decisiones/0001-stack.md) |
 
 ## Desarrollo
