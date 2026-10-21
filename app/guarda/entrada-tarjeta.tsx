@@ -10,11 +10,13 @@ import { opcionesDeZona, type ZonaConCupos } from "@/lib/reglas/acceso";
 import { identificarTarjeta, registrarEntradaTarjeta, type ConsultaTarjeta } from "./actions";
 
 const TAMANOS: Record<tamano_vehiculo, string> = { moto: "Moto", sedan: "Sedán", suv: "SUV", grande: "Grande" };
-type Miembro = Extract<ConsultaTarjeta, { nombre: string }>;
+type Leido = Exclude<ConsultaTarjeta, { error: string }>;
+type Miembro = Extract<ConsultaTarjeta, { tipo: "miembro" }>;
+type Reserva = Extract<ConsultaTarjeta, { tipo: "reserva" }>;
 
-/** CU-12 para miembros: QR con la cámara o código corto (1a). */
+/** CU-12: tarjeta de miembro o reserva de invitado, por QR con la cámara o por código corto (1a). */
 export function EntradaTarjeta({ zonas }: { zonas: ZonaConCupos[] }) {
-  const [leido, setLeido] = useState<{ texto: string; miembro: Miembro } | null>(null);
+  const [leido, setLeido] = useState<{ texto: string; consulta: Leido } | null>(null);
   const [camara, setCamara] = useState(false);
   const [mensaje, setMensaje] = useState<Resultado>(null);
   const [buscando, iniciar] = useTransition();
@@ -26,7 +28,7 @@ export function EntradaTarjeta({ zonas }: { zonas: ZonaConCupos[] }) {
         const r = await identificarTarjeta(texto);
         if ("error" in r) setMensaje({ error: r.error });
         else {
-          setLeido({ texto, miembro: r });
+          setLeido({ texto, consulta: r });
           setCamara(false);
         }
         listo();
@@ -34,16 +36,14 @@ export function EntradaTarjeta({ zonas }: { zonas: ZonaConCupos[] }) {
     );
 
   if (leido) {
-    return (
-      <VehiculoYZona
-        zonas={zonas}
-        texto={leido.texto}
-        miembro={leido.miembro}
-        alTerminar={(r) => {
-          setMensaje(r);
-          setLeido(null);
-        }}
-      />
+    const alTerminar = (r: Resultado) => {
+      setMensaje(r);
+      setLeido(null);
+    };
+    return leido.consulta.tipo === "reserva" ? (
+      <ConfirmarReserva texto={leido.texto} reserva={leido.consulta} alTerminar={alTerminar} />
+    ) : (
+      <VehiculoYZona zonas={zonas} texto={leido.texto} miembro={leido.consulta} alTerminar={alTerminar} />
     );
   }
 
@@ -102,7 +102,7 @@ function VehiculoYZona({
   const vehiculo = miembro.vehiculos.find((v) => v.placa === placa) ?? miembro.vehiculos[0];
   const { opciones, sugerida } = opcionesDeZona(
     zonas,
-    { tipo: miembro.tipo as tipo_persona, preferencial: miembro.preferencial },
+    { tipo: miembro.tipoPersona as tipo_persona, preferencial: miembro.preferencial },
     vehiculo.tamano as tamano_vehiculo,
   );
 
@@ -111,7 +111,7 @@ function VehiculoYZona({
       <div>
         <p className="text-lg font-semibold">{miembro.nombre}</p>
         <p className="text-sm text-neutral-500">
-          {TIPO_PERSONA[miembro.tipo as tipo_persona]}
+          {TIPO_PERSONA[miembro.tipoPersona as tipo_persona]}
           {miembro.preferencial && " · preferencial"}
         </p>
       </div>
@@ -142,6 +142,71 @@ function VehiculoYZona({
           <span className="text-sm text-amber-600">No hay zona con cupo para esta persona. Si la dejas pasar, quedará en sobrecupo.</span>
         )}
       </label>
+
+      <Mensaje resultado={resultado} />
+      <div className="flex gap-3">
+        <button disabled={pendiente} className={estiloBoton}>
+          {pendiente ? "Registrando…" : "Registrar entrada"}
+        </button>
+        <button type="button" onClick={() => alTerminar(null)} className="text-sm underline">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/** CU-12 (invitado), pasos 4 a 6: el guarda confirma la placa o la corrige (5a). */
+function ConfirmarReserva({
+  texto,
+  reserva,
+  alTerminar,
+}: {
+  texto: string;
+  reserva: Reserva;
+  alTerminar: (r: Resultado) => void;
+}) {
+  const { resultado, alEnviar, pendiente } = useFormulario(async (prev, form) => {
+    const r = await registrarEntradaTarjeta(texto, prev, form);
+    if (r && !r.error) alTerminar(r);
+    return r;
+  });
+
+  return (
+    <form method="post" onSubmit={alEnviar} className="space-y-4">
+      <div>
+        <p className="text-sm font-medium text-green-700 dark:text-green-500">Reserva válida</p>
+        <p className="text-lg font-semibold">{reserva.nombre}</p>
+        <p className="text-sm text-neutral-500">
+          {reserva.identificacion} · {reserva.motivo} · {reserva.franja}
+        </p>
+        <p className="text-sm text-neutral-500">
+          Zona reservada: <span className="font-medium">{reserva.zona}</span>
+        </p>
+        {reserva.preferencial && (
+          <p className="text-sm text-amber-600">Indicó que requiere espacio preferencial: verifícalo al llegar.</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className="block">
+          <span className="text-sm">Placa (confirma que coincida)</span>
+          <input name="placa" required defaultValue={reserva.placa} className={`${estiloInput} uppercase tracking-wide`} />
+        </label>
+        <label className="block">
+          <span className="text-sm">Tamaño</span>
+          <select name="tamano" defaultValue={reserva.tamano} className={estiloInput}>
+            {reserva.permitidos.map((t) => (
+              <option key={t} value={t}>
+                {TAMANOS[t as tamano_vehiculo]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <p className="text-xs text-neutral-500">
+        Si llegó en otro vehículo del mismo tamaño o menor, corrige la placa; el cambio queda registrado.
+      </p>
 
       <Mensaje resultado={resultado} />
       <div className="flex gap-3">

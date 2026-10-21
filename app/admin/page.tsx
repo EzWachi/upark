@@ -4,6 +4,8 @@ import { Area } from "@/components/area";
 const ENLACES_ADMIN = [
   { href: "/admin/miembros", titulo: "Miembros", detalle: "Aprobar solicitudes y gestionar cuentas" },
   { href: "/admin/guardas", titulo: "Guardas", detalle: "Crear, desactivar y reenviar acceso" },
+  { href: "/admin/invitaciones", titulo: "Invitaciones", detalle: "Visitas y eventos con reserva de espacio" },
+  { href: "/guarda/buscar", titulo: "Buscar vehículo", detalle: "Por placa o identificación" },
 ];
 
 const ENLACES_SUPER_ADMIN = [

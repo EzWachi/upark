@@ -50,6 +50,7 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 | [#3](https://github.com/EzWachi/upark/pull/3) | Registro y verificación de correo (CU-02), recuperar contraseña (CU-03), aprobación de miembros (CU-22), guardas (CU-24), administradores (CU-32); correo por consola | Fusionado |
 | [#4](https://github.com/EzWachi/upark/pull/4) | Panel del guarda: turno (CU-11), entrada manual (CU-13), salida (CU-14), búsqueda (CU-15), vehículos dentro (CU-16), fila (CU-17), anular (CU-18) | Fusionado |
 | [#5](https://github.com/EzWachi/upark/pull/5) | Mis vehículos (CU-04), tarjeta virtual (CU-05), entrada por QR o código (CU-12, miembros); este documento | Fusionado |
+| #6 | Invitaciones (CU-25 a CU-27), reserva del invitado (CU-08, CU-09) y entrada con reserva (CU-12) | En revisión |
 
 ### Estado de los casos de uso Must
 
@@ -60,17 +61,17 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 | CU-03 Iniciar sesión y recuperar contraseña | Hecho, sin bloqueo tras 5 intentos (2b) y sin cerrar otras sesiones al cambiar la contraseña |
 | CU-04 Mis vehículos | Hecho |
 | CU-05 Tarjeta virtual | Hecho |
-| CU-08 Reservar cupo por enlace | **Pendiente** |
-| CU-09 Recibir QR de reserva | **Pendiente** |
+| CU-08 Reservar cupo por enlace | Hecho |
+| CU-09 Recibir QR de reserva | Hecho (el QR va en la página de la reserva; el correo lleva el enlace y el código) |
 | CU-11 Parqueo del turno | Hecho |
-| CU-12 Entrada por QR | Hecho para miembros; **reservas pendientes** |
+| CU-12 Entrada por QR | Hecho, para miembros y reservas |
 | CU-13 a CU-17 | Hecho |
 | CU-18 Anular registro | Hecho; anular registros de otros días (solo admin) sin pantalla |
 | CU-22 Aprobar miembros | Hecho |
 | CU-24 Gestionar guardas | Hecho |
-| CU-25 Invitación individual | **Pendiente** |
-| CU-26 Invitación de evento | **Pendiente** |
-| CU-27 Ver y cancelar invitaciones | **Pendiente** |
+| CU-25 Invitación individual | Hecho |
+| CU-26 Invitación de evento | Hecho |
+| CU-27 Ver y cancelar invitaciones | Hecho |
 | CU-30 Gestionar parqueos | Hecho, sin subir la foto |
 | CU-31 Gestionar zonas y cupos | Hecho |
 | CU-32 Gestionar administradores | Hecho |
@@ -94,7 +95,7 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 
 ### Calidad
 
-- 57 pruebas de reglas de negocio (`lib/reglas`), lint y build en el CI de cada PR.
+- 68 pruebas de reglas de negocio (`lib/reglas`), lint y build en el CI de cada PR.
 - Cada etapa se probó en el navegador con cuentas temporales, borradas al final.
 - No hay pruebas automáticas de las acciones contra la base de datos.
 
@@ -107,10 +108,7 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 
 ### Casos de uso Must que faltan
 
-- Invitaciones: CU-25 (individual), CU-26 (evento) y CU-27 (ver y cancelar).
-- Reserva del invitado: CU-08 (registro por enlace) y CU-09 (QR de la reserva).
-- Entrada con reserva en el panel del guarda (rama de reservas de CU-12).
-- Envío real de correos con Resend (CU-38).
+- Envío real de correos con Resend (CU-38). Es el único Must pendiente; hoy los correos se imprimen en la consola del servidor.
 
 ### Casos Should y ajustes
 

@@ -106,7 +106,7 @@ async function Panel() {
       </section>
 
       <section className={tarjeta}>
-        <h3 className="mb-3 font-semibold">Entrada con tarjeta</h3>
+        <h3 className="mb-3 font-semibold">Entrada con tarjeta o reserva</h3>
         <EntradaTarjeta zonas={zonas} />
       </section>
 
