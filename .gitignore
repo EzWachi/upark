@@ -44,3 +44,6 @@ next-env.d.ts
 
 # prisma client generado
 /lib/generated
+
+# lo copia scripts/copiar-wasm-qr.mjs
+/public/zxing_reader.wasm

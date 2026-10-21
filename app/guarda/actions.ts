@@ -10,6 +10,7 @@ import { disponibilidadParqueos } from "@/lib/consultas/disponibilidad";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { cupoAlEntrar } from "@/lib/reglas/acceso";
+import { interpretarCredencial } from "@/lib/reglas/credencial";
 import { inicioDelDiaCR } from "@/lib/reglas/disponibilidad";
 import { identificacionValida, normalizarIdentificacion } from "@/lib/reglas/identificacion";
 import { normalizarPlaca, placaValida } from "@/lib/reglas/placa";
@@ -159,37 +160,150 @@ export async function registrarEntrada(_prev: Resultado, form: FormData): Promis
     };
   }
 
-  // Zona elegida por el guarda (paso 7): tiene que ser de su parqueo.
-  const zonaId = String(form.get("zona_id") ?? "");
-  const [disp] = await disponibilidadParqueos(new Date(), parqueo.id);
-  const zona = disp?.zonas.find((z) => z.id === zonaId);
+  return crearEntrada({
+    parqueoId: parqueo.id,
+    guardaId: guarda.id,
+    zonaId: String(form.get("zona_id") ?? ""),
+    origen: "manual",
+    datos: { ...persona, placa, origen_placa: origen.data, pais: pais || null },
+  });
+}
+
+type DatosEntrada = Pick<
+  Prisma.movimientosUncheckedCreateInput,
+  | "persona_nombre"
+  | "tipo_persona"
+  | "tipo_identificacion"
+  | "identificacion"
+  | "usuario_id"
+  | "tamano_vehiculo"
+  | "placa"
+  | "origen_placa"
+  | "pais"
+>;
+
+/**
+ * Pasos finales comunes a la entrada manual (CU-13) y por QR (CU-12): valida
+ * que la zona sea del parqueo, calcula el cupo que ocupa y crea el movimiento.
+ * No se exporta: en un archivo "use server" solo lo exportado es un endpoint.
+ */
+async function crearEntrada(input: {
+  parqueoId: string;
+  guardaId: string;
+  zonaId: string;
+  origen: "manual" | "qr_miembro" | "qr_reserva";
+  datos: DatosEntrada;
+}): Promise<Resultado> {
+  const [disp] = await disponibilidadParqueos(new Date(), input.parqueoId);
+  const zona = disp?.zonas.find((z) => z.id === input.zonaId);
   if (!zona) return { error: "Elige una zona de este parqueo." };
-  const { tamanoCupo, sobrecupo } = cupoAlEntrar(persona.tamano_vehiculo, zona.porTamano);
+  const { tamanoCupo, sobrecupo } = cupoAlEntrar(input.datos.tamano_vehiculo, zona.porTamano);
 
   try {
     await db.movimientos.create({
       data: {
-        ...persona,
-        placa,
-        origen_placa: origen.data,
-        pais: pais || null,
+        ...input.datos,
         tamano_cupo: tamanoCupo,
-        origen: "manual",
+        origen: input.origen,
         sobrecupo,
-        parqueo_id: parqueo.id,
+        parqueo_id: input.parqueoId,
         zona_id: zona.id,
-        guarda_entrada_id: guarda.id,
+        guarda_entrada_id: input.guardaId,
       },
     });
   } catch (e) {
-    // RN-01 garantizado por la base: otro guarda la registró al mismo tiempo.
-    if (esDuplicado(e)) return { error: `${placa} ya figura dentro de un parqueo.` };
+    // RN-01 garantizado por la base: la placa ya está dentro, quizá registrada
+    // por otro guarda al mismo tiempo.
+    if (esDuplicado(e)) return { error: `${input.datos.placa} ya figura dentro de un parqueo.` };
     throw e;
   }
 
   refresh();
-  const texto = `Entrada registrada: ${placa} en ${zona.nombre}.`;
+  const texto = `Entrada registrada: ${input.datos.placa} en ${zona.nombre}.`;
   return sobrecupo ? { aviso: `${texto} La zona quedó en sobrecupo.` } : { ok: texto };
+}
+
+// ── CU-12 ────────────────────────────────────────────────────────────────
+
+/** Busca al miembro de una tarjeta por el QR o el código corto (RN-13). */
+async function miembroDeCredencial(texto: string) {
+  const credencial = interpretarCredencial(texto);
+  if (!credencial) return { ok: false, error: "No es una tarjeta de UPark." } as const;
+  if (credencial.tipo === "reserva") {
+    return { ok: false, error: "Las entradas con reserva todavía no están disponibles. Usa la entrada manual." } as const;
+  }
+
+  const usuario = await db.usuarios.findFirst({
+    where: credencial.tipo === "miembro" ? { token_tarjeta: credencial.token } : { codigo_tarjeta: credencial.codigo },
+    include: { vehiculos: { orderBy: [{ principal: "desc" }, { created_at: "asc" }] } },
+  });
+  // 2a: tarjeta regenerada, inexistente o de una cuenta que no está aprobada.
+  if (!usuario || usuario.rol !== "miembro" || usuario.estado !== "aprobada") {
+    return { ok: false, error: "Tarjeta no válida o de una cuenta inactiva. Usa la entrada manual." } as const;
+  }
+  return { ok: true, usuario } as const;
+}
+
+export type ConsultaTarjeta =
+  | { error: string }
+  | {
+      nombre: string;
+      tipo: string;
+      preferencial: boolean;
+      vehiculos: { placa: string; tamano: string; principal: boolean; descripcion: string | null }[];
+    };
+
+/** CU-12 (miembro), pasos 1 a 3. */
+export async function identificarTarjeta(texto: string): Promise<ConsultaTarjeta> {
+  await exigirRol("guarda");
+  const r = await miembroDeCredencial(texto);
+  if (!r.ok) return { error: r.error };
+  const { usuario } = r;
+  if (usuario.vehiculos.length === 0) {
+    return { error: `${usuario.nombre} no tiene vehículos registrados. Usa la entrada manual.` };
+  }
+  return {
+    nombre: usuario.nombre,
+    tipo: usuario.tipo_persona ?? "visita",
+    preferencial: usuario.preferencial,
+    vehiculos: usuario.vehiculos.map((v) => ({
+      placa: v.placa,
+      tamano: v.tamano,
+      principal: v.principal,
+      descripcion: v.descripcion,
+    })),
+  };
+}
+
+/** CU-12 (miembro), pasos 4 a 8. Vuelve a validar todo con la tarjeta, no con lo que mande el navegador. */
+export async function registrarEntradaTarjeta(texto: string, _prev: Resultado, form: FormData): Promise<Resultado> {
+  const { guarda, parqueo } = await guardaEnTurno();
+  if (!parqueo) return { error: "Selecciona primero el parqueo de tu turno." };
+  const r = await miembroDeCredencial(texto);
+  if (!r.ok) return { error: r.error };
+  const { usuario } = r;
+
+  // RN-14: la tarjeta solo sirve para los vehículos del miembro.
+  const vehiculo = usuario.vehiculos.find((v) => v.placa === String(form.get("placa") ?? ""));
+  if (!vehiculo) return { error: "Esa placa no es de este miembro. Usa la entrada manual." };
+
+  return crearEntrada({
+    parqueoId: parqueo.id,
+    guardaId: guarda.id,
+    zonaId: String(form.get("zona_id") ?? ""),
+    origen: "qr_miembro",
+    datos: {
+      persona_nombre: usuario.nombre,
+      tipo_persona: usuario.tipo_persona ?? "visita",
+      tipo_identificacion: usuario.tipo_identificacion,
+      identificacion: usuario.identificacion,
+      usuario_id: usuario.id,
+      tamano_vehiculo: vehiculo.tamano,
+      placa: vehiculo.placa,
+      origen_placa: vehiculo.origen,
+      pais: vehiculo.pais,
+    },
+  });
 }
 
 // ── CU-14 ────────────────────────────────────────────────────────────────

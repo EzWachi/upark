@@ -9,6 +9,7 @@ import { parqueoDelTurno } from "@/lib/turno";
 import { anularSalida, dejarParqueo, moverFila, seleccionarParqueo } from "./actions";
 import { Dentro } from "./dentro";
 import { EntradaManual } from "./entrada";
+import { EntradaTarjeta } from "./entrada-tarjeta";
 
 const hora = (d: Date) =>
   d.toLocaleTimeString("es-CR", { timeZone: "America/Costa_Rica", hour: "2-digit", minute: "2-digit" });
@@ -102,6 +103,11 @@ async function Panel() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className={tarjeta}>
+        <h3 className="mb-3 font-semibold">Entrada con tarjeta</h3>
+        <EntradaTarjeta zonas={zonas} />
       </section>
 
       <section className={tarjeta}>
