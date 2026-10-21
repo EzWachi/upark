@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # postinstall corre `prisma generate`: el cliente no está en el repo.
+      - run: npm ci
+
+      - run: npm run lint
+
+      # Reglas de negocio (lib/reglas): sin base ni servidor.
+      - run: npm test
+
+      # Incluye la verificación de tipos. No necesita base de datos: las
+      # páginas que la consultan se renderizan en cada request, no al compilar.
+      - run: npm run build
