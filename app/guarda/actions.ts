@@ -11,7 +11,9 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { cupoAlEntrar } from "@/lib/reglas/acceso";
 import { interpretarCredencial } from "@/lib/reglas/credencial";
-import { inicioDelDiaCR } from "@/lib/reglas/disponibilidad";
+import { APERTURA_PREVIA_MIN, dentroDeVentana, estadoReserva, inicioDelDiaCR } from "@/lib/reglas/disponibilidad";
+import { tamanosPermitidos } from "@/lib/reglas/invitaciones";
+import { TIPO_IDENTIFICACION } from "@/lib/etiquetas";
 import { identificacionValida, normalizarIdentificacion } from "@/lib/reglas/identificacion";
 import { normalizarPlaca, placaValida } from "@/lib/reglas/placa";
 import { COOKIE_TURNO, parqueoDelTurno } from "@/lib/turno";
@@ -225,46 +227,117 @@ async function crearEntrada(input: {
 
 // ── CU-12 ────────────────────────────────────────────────────────────────
 
-/** Busca al miembro de una tarjeta por el QR o el código corto (RN-13). */
-async function miembroDeCredencial(texto: string) {
+const conInvitacion = { invitacion: { include: { zona: { include: { parqueo: true } } } } } as const;
+
+/**
+ * Qué identifica lo leído (RN-13): la tarjeta de un miembro o una reserva, por
+ * QR o por código corto. El código se busca primero entre las tarjetas y
+ * después entre las reservas.
+ */
+async function leerCredencial(texto: string) {
   const credencial = interpretarCredencial(texto);
-  if (!credencial) return { ok: false, error: "No es una tarjeta de UPark." } as const;
-  if (credencial.tipo === "reserva") {
-    return { ok: false, error: "Las entradas con reserva todavía no están disponibles. Usa la entrada manual." } as const;
+  if (!credencial) return { ok: false, error: "No es un QR ni un código de UPark." } as const;
+
+  if (credencial.tipo !== "reserva") {
+    const usuario = await db.usuarios.findFirst({
+      where: credencial.tipo === "miembro" ? { token_tarjeta: credencial.token } : { codigo_tarjeta: credencial.codigo },
+      include: { vehiculos: { orderBy: [{ principal: "desc" }, { created_at: "asc" }] } },
+    });
+    if (usuario) {
+      // 2a: tarjeta de una cuenta que no está aprobada.
+      if (usuario.rol !== "miembro" || usuario.estado !== "aprobada") {
+        return { ok: false, error: "Tarjeta de una cuenta inactiva. Usa la entrada manual." } as const;
+      }
+      return { ok: true, tipo: "miembro", usuario } as const;
+    }
+    if (credencial.tipo === "miembro") {
+      return { ok: false, error: "Tarjeta no válida (puede haber sido regenerada). Usa la entrada manual." } as const;
+    }
   }
 
-  const usuario = await db.usuarios.findFirst({
-    where: credencial.tipo === "miembro" ? { token_tarjeta: credencial.token } : { codigo_tarjeta: credencial.codigo },
-    include: { vehiculos: { orderBy: [{ principal: "desc" }, { created_at: "asc" }] } },
+  const reserva = await db.reservas.findFirst({
+    where: credencial.tipo === "reserva" ? { token_qr: credencial.token } : { codigo: credencial.codigo },
+    include: conInvitacion,
   });
-  // 2a: tarjeta regenerada, inexistente o de una cuenta que no está aprobada.
-  if (!usuario || usuario.rol !== "miembro" || usuario.estado !== "aprobada") {
-    return { ok: false, error: "Tarjeta no válida o de una cuenta inactiva. Usa la entrada manual." } as const;
+  if (!reserva) return { ok: false, error: "No se encontró esa tarjeta ni esa reserva. Usa la entrada manual." } as const;
+  return { ok: true, tipo: "reserva", reserva } as const;
+}
+
+type ReservaLeida = Prisma.reservasGetPayload<{ include: typeof conInvitacion }>;
+
+/** CU-12 (invitado), pasos 3 y 3a a 3d. */
+function validarReserva(reserva: ReservaLeida, parqueoId: string, ahora: Date): string | null {
+  const inv = reserva.invitacion;
+  const estado = estadoReserva(reserva.estado, inv.inicio_at, ahora);
+  if (estado === "cancelada" || inv.cancelada_at) return "La reserva fue cancelada."; // 3d
+  if (estado === "usada") return "La reserva ya se usó."; // 3d
+  if (estado === "no_se_presento") {
+    return "La reserva venció (pasó la tolerancia). Si hay cupo, regístralo como visita sin reserva en la entrada manual."; // 3c
   }
-  return { ok: true, usuario } as const;
+  if (inv.zona.parqueo_id !== parqueoId) return `La reserva es para ${inv.zona.parqueo.nombre}.`; // 3a
+  if (!dentroDeVentana(inv.inicio_at, ahora)) {
+    const desde = new Date(inv.inicio_at.getTime() - APERTURA_PREVIA_MIN * 60_000);
+    return `Todavía es temprano: puede entrar desde las ${hora(desde)}.`; // 3b
+  }
+  return null;
 }
 
 export type ConsultaTarjeta =
   | { error: string }
   | {
+      tipo: "miembro";
       nombre: string;
-      tipo: string;
+      tipoPersona: string;
       preferencial: boolean;
       vehiculos: { placa: string; tamano: string; principal: boolean; descripcion: string | null }[];
+    }
+  | {
+      tipo: "reserva";
+      nombre: string;
+      identificacion: string;
+      placa: string;
+      tamano: string;
+      permitidos: string[];
+      zona: string;
+      motivo: string;
+      franja: string;
+      preferencial: boolean;
     };
 
-/** CU-12 (miembro), pasos 1 a 3. */
+/** CU-12, pasos 1 a 4. */
 export async function identificarTarjeta(texto: string): Promise<ConsultaTarjeta> {
-  await exigirRol("guarda");
-  const r = await miembroDeCredencial(texto);
+  const { parqueo } = await guardaEnTurno();
+  if (!parqueo) return { error: "Selecciona primero el parqueo de tu turno." };
+  const r = await leerCredencial(texto);
   if (!r.ok) return { error: r.error };
+
+  if (r.tipo === "reserva") {
+    const { reserva } = r;
+    const error = validarReserva(reserva, parqueo.id, new Date());
+    if (error) return { error };
+    const inv = reserva.invitacion;
+    return {
+      tipo: "reserva",
+      nombre: reserva.nombre,
+      identificacion: `${TIPO_IDENTIFICACION[reserva.tipo_identificacion]} ${reserva.identificacion}`,
+      placa: reserva.placa,
+      tamano: reserva.tamano,
+      permitidos: tamanosPermitidos(reserva.tamano),
+      zona: inv.zona.nombre,
+      motivo: inv.motivo,
+      franja: `${hora(inv.inicio_at)} a ${hora(inv.fin_at)}`,
+      preferencial: reserva.requiere_preferencial,
+    };
+  }
+
   const { usuario } = r;
   if (usuario.vehiculos.length === 0) {
     return { error: `${usuario.nombre} no tiene vehículos registrados. Usa la entrada manual.` };
   }
   return {
+    tipo: "miembro",
     nombre: usuario.nombre,
-    tipo: usuario.tipo_persona ?? "visita",
+    tipoPersona: usuario.tipo_persona ?? "visita",
     preferencial: usuario.preferencial,
     vehiculos: usuario.vehiculos.map((v) => ({
       placa: v.placa,
@@ -275,14 +348,15 @@ export async function identificarTarjeta(texto: string): Promise<ConsultaTarjeta
   };
 }
 
-/** CU-12 (miembro), pasos 4 a 8. Vuelve a validar todo con la tarjeta, no con lo que mande el navegador. */
+/** CU-12, pasos 5 a 8. Vuelve a validar todo con la credencial, no con lo que mande el navegador. */
 export async function registrarEntradaTarjeta(texto: string, _prev: Resultado, form: FormData): Promise<Resultado> {
   const { guarda, parqueo } = await guardaEnTurno();
   if (!parqueo) return { error: "Selecciona primero el parqueo de tu turno." };
-  const r = await miembroDeCredencial(texto);
+  const r = await leerCredencial(texto);
   if (!r.ok) return { error: r.error };
-  const { usuario } = r;
+  if (r.tipo === "reserva") return entradaConReserva(r.reserva, parqueo.id, guarda.id, form);
 
+  const { usuario } = r;
   // RN-14: la tarjeta solo sirve para los vehículos del miembro.
   const vehiculo = usuario.vehiculos.find((v) => v.placa === String(form.get("placa") ?? ""));
   if (!vehiculo) return { error: "Esa placa no es de este miembro. Usa la entrada manual." };
@@ -305,6 +379,68 @@ export async function registrarEntradaTarjeta(texto: string, _prev: Resultado, f
     },
   });
 }
+
+/**
+ * CU-12 (invitado), pasos 5 y 6. Entra a la zona reservada ocupando el cupo que
+ * la reserva ya tenía apartado, así que nunca es sobrecupo.
+ */
+async function entradaConReserva(reserva: ReservaLeida, parqueoId: string, guardaId: string, form: FormData): Promise<Resultado> {
+  const error = validarReserva(reserva, parqueoId, new Date());
+  if (error) return { error };
+
+  // 5a: llegó en otro vehículo del mismo tamaño o menor.
+  const placa = normalizarPlaca(String(form.get("placa") ?? ""));
+  const tamano = TAMANO.safeParse(form.get("tamano"));
+  if (!placaValida(placa, reserva.origen_placa)) return { error: "La placa no tiene un formato válido." };
+  if (!tamano.success || !tamanosPermitidos(reserva.tamano).includes(tamano.data)) {
+    return { error: "El vehículo no puede ser más grande que el reservado." };
+  }
+  const cambio = placa !== reserva.placa || tamano.data !== reserva.tamano;
+
+  try {
+    await db.$transaction(async (tx) => {
+      const { count } = await tx.reservas.updateMany({
+        where: { id: reserva.id, estado: "confirmada" },
+        data: { estado: "usada", placa, tamano: tamano.data },
+      });
+      if (count !== 1) throw new ReservaYaUsada();
+      const mov = await tx.movimientos.create({
+        data: {
+          placa,
+          origen_placa: reserva.origen_placa,
+          pais: reserva.pais,
+          tamano_vehiculo: tamano.data,
+          tamano_cupo: reserva.tamano,
+          persona_nombre: reserva.nombre,
+          tipo_persona: "visita",
+          tipo_identificacion: reserva.tipo_identificacion,
+          identificacion: reserva.identificacion,
+          origen: "qr_reserva",
+          reserva_id: reserva.id,
+          parqueo_id: parqueoId,
+          zona_id: reserva.invitacion.zona_id,
+          guarda_entrada_id: guardaId,
+        },
+      });
+      if (cambio) {
+        await auditar(tx, guardaId, "cambio_placa_reserva", mov.id, null, {
+          reserva_id: reserva.id,
+          antes: { placa: reserva.placa, tamano: reserva.tamano },
+          despues: { placa, tamano: tamano.data },
+        });
+      }
+    });
+  } catch (e) {
+    if (e instanceof ReservaYaUsada) return { error: "La reserva ya se usó." };
+    if (esDuplicado(e)) return { error: `${placa} ya figura dentro de un parqueo.` };
+    throw e;
+  }
+
+  refresh();
+  return { ok: `Entrada registrada: ${placa} en ${reserva.invitacion.zona.nombre} (reserva).` };
+}
+
+class ReservaYaUsada extends Error {}
 
 // ── CU-14 ────────────────────────────────────────────────────────────────
 

@@ -1,5 +1,21 @@
 /** Textos de pantalla para los valores de la base. */
 
+/** Fecha y hora en Costa Rica, para pantallas y correos. */
+export const fechaHoraTexto = (d: Date) =>
+  d.toLocaleString("es-CR", {
+    timeZone: "America/Costa_Rica",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+export const horaTexto = (d: Date) =>
+  d.toLocaleTimeString("es-CR", { timeZone: "America/Costa_Rica", hour: "2-digit", minute: "2-digit" });
+
+export const TAMANO = { moto: "Moto", sedan: "Sedán", suv: "SUV", grande: "Grande" } as const;
+
 export const TIPO_IDENTIFICACION = {
   cedula: "Cédula nacional",
   dimex: "DIMEX",
