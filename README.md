@@ -24,6 +24,7 @@ Proyecto del curso **16-0629 Metodologías Ágiles de Desarrollo** (ULACIT, III 
 | [Sistema](docs/casos-de-uso/sistema.md) | CU-36 a CU-38 |
 | [Reglas de negocio](docs/reglas-de-negocio.md) | Reglas RN-xx, supuestos y pendientes |
 | [Estado del proyecto](docs/estado-del-proyecto.md) | Qué está hecho, qué está en revisión y qué falta |
+| [Bitácora](docs/bitacora/) | Registro cronológico de cada sesión de trabajo |
 | [Decisiones](docs/decisiones/) | Registro de decisiones de arquitectura (ADR), empezando por el [stack](docs/decisiones/0001-stack.md) |
 
 ## Desarrollo
@@ -56,6 +57,6 @@ Estructura:
 
 ## Estado
 
-- Casos de uso **Must** especificados.
-- Esqueleto funcionando: modelo de datos completo, migración inicial (con el índice de RN-01), login por rol, áreas protegidas y disponibilidad pública (CU-01).
-- Pendiente: el resto de los casos de uso.
+- 25 de 26 casos de uso **Must** implementados: disponibilidad pública, cuentas y roles, parqueos y zonas, tarjeta virtual con QR, panel del guarda, invitaciones y reservas.
+- Pendiente: envío real de correos con Resend (CU-38); hoy se imprimen en la consola del servidor.
+- Detalle en [estado del proyecto](docs/estado-del-proyecto.md).
