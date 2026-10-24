@@ -74,15 +74,18 @@ export async function disponibilidadParqueos(ahora: Date, parqueoId?: string) {
         tipos_permitidos: z.tipos_permitidos,
         porTamano,
         total,
+        capacidad: TAMANOS.reduce((acc, t) => acc + cupos[t], 0),
       };
     });
     return {
       id: p.id,
       nombre: p.nombre,
+      descripcion: p.descripcion,
       foto_url: p.foto_url,
       fila: p.fila,
       fila_actualizada_at: p.fila_actualizada_at,
       total: zonas.reduce((acc, z) => acc + z.total, 0),
+      capacidad: zonas.reduce((acc, z) => acc + z.capacidad, 0),
       zonas,
     };
   });

@@ -3,6 +3,27 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Semáforo de ocupación (CU-01). -tinta va sobre el relleno, -texto sobre el fondo. */
+  --libre: #15803d;
+  --libre-tinta: #ffffff;
+  --libre-texto: #15803d;
+  --llenandose: #eab308;
+  --llenandose-tinta: #3b2a03;
+  --llenandose-texto: #a16207;
+  --lleno: #dc2626;
+  --lleno-tinta: #ffffff;
+  --lleno-texto: #b91c1c;
+  --sin-datos: #d6d3d1;
+  --sin-datos-tinta: #44403c;
+  --sin-datos-texto: #78716c;
+
+  /* Mapa del campus. */
+  --mapa-suelo: #ede7dc;
+  --mapa-calle: #ffffff;
+  --mapa-edificio: #cdc7bc;
+  --mapa-ulacit: #5b2d86;
+  --mapa-rotulo: #6b6358;
 }
 
 @theme inline {
@@ -15,6 +36,25 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+
+    --libre: #22c55e;
+    --libre-tinta: #052e16;
+    --libre-texto: #4ade80;
+    --llenandose: #facc15;
+    --llenandose-tinta: #3b2a03;
+    --llenandose-texto: #facc15;
+    --lleno: #ef4444;
+    --lleno-tinta: #ffffff;
+    --lleno-texto: #f87171;
+    --sin-datos: #44403c;
+    --sin-datos-tinta: #e7e5e4;
+    --sin-datos-texto: #a8a29e;
+
+    --mapa-suelo: #1c1a17;
+    --mapa-calle: #3a3631;
+    --mapa-edificio: #2d2a26;
+    --mapa-ulacit: #a685d6;
+    --mapa-rotulo: #8f877b;
   }
 }
 
@@ -22,4 +62,26 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--mapa-ulacit) 25%, transparent);
+}
+
+/* Cada parqueo del mapa es un enlace a su fila en la lista. */
+.zona-mapa .forma {
+  fill-opacity: 0.82;
+  stroke: var(--mapa-suelo);
+  stroke-width: 2;
+  transition: fill-opacity 150ms ease-out;
+}
+.zona-mapa:hover .forma,
+.zona-mapa:focus-visible .forma {
+  fill-opacity: 1;
+}
+.zona-mapa:focus-visible {
+  outline: none;
+}
+.zona-mapa:focus-visible .insignia rect {
+  stroke: var(--foreground);
 }
