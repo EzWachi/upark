@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Registro de lo hecho hasta el 21 de octubre de 2026 (semana 7 del cuatrimestre) y de lo que falta. Se actualiza al cerrar cada etapa.
+Registro de lo hecho hasta el 24 de octubre de 2026 (semana 7 del cuatrimestre) y de lo que falta. Se actualiza al cerrar cada etapa. El detalle tarea por tarea está en el [Project UPark](https://github.com/users/EzWachi/projects/9).
 
 [Volver al README](../README.md) · [Tablero (Project)](https://github.com/users/EzWachi/projects/9) · [Casos de uso](casos-de-uso/README.md) · [Reglas de negocio](reglas-de-negocio.md)
 
@@ -51,6 +51,8 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 | [#4](https://github.com/EzWachi/upark/pull/4) | Panel del guarda: turno (CU-11), entrada manual (CU-13), salida (CU-14), búsqueda (CU-15), vehículos dentro (CU-16), fila (CU-17), anular (CU-18) | Fusionado |
 | [#5](https://github.com/EzWachi/upark/pull/5) | Mis vehículos (CU-04), tarjeta virtual (CU-05), entrada por QR o código (CU-12, miembros); este documento | Fusionado |
 | [#6](https://github.com/EzWachi/upark/pull/6) | Invitaciones (CU-25 a CU-27), reserva del invitado (CU-08, CU-09) y entrada con reserva (CU-12) | Fusionado |
+| [#7](https://github.com/EzWachi/upark/pull/7) | Bitácora de la sesión y README al día | Fusionado |
+| [#60](https://github.com/EzWachi/upark/pull/60) | Enlace al Project de seguimiento | Fusionado |
 
 ### Estado de los casos de uso Must
 
@@ -103,8 +105,9 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 
 ### Inmediato
 
-1. **Probar el escaneo con la cámara** en un teléfono, con https (Vercel o `next dev --experimental-https`).
-2. **Invitar a los compañeros** al repositorio.
+1. **Enviar correos con Resend (CU-38).** Último Must; sin él no hay demo con personas reales.
+2. **Probar el escaneo con la cámara** en un teléfono, con https (Vercel o `next dev --experimental-https`).
+3. **Invitar a los compañeros** al repositorio y al Project.
 
 ### Casos de uso Must que faltan
 
