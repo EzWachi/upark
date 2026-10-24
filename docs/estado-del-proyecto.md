@@ -2,7 +2,7 @@
 
 Registro de lo hecho hasta el 21 de octubre de 2026 (semana 7 del cuatrimestre) y de lo que falta. Se actualiza al cerrar cada etapa.
 
-[Volver al README](../README.md) · [Casos de uso](casos-de-uso/README.md) · [Reglas de negocio](reglas-de-negocio.md)
+[Volver al README](../README.md) · [Tablero (Project)](https://github.com/users/EzWachi/projects/9) · [Casos de uso](casos-de-uso/README.md) · [Reglas de negocio](reglas-de-negocio.md)
 
 ## 1. Revisión del primer avance
 
