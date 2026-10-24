@@ -1,4 +1,4 @@
-// Datos mínimos para desarrollo: el primer super admin y un parqueo de ejemplo.
+// Datos mínimos para desarrollo: el primer super admin y los parqueos P1 a P5.
 // Se puede correr varias veces sin duplicar nada (npx prisma db seed).
 import "dotenv/config";
 import bcrypt from "bcryptjs";
@@ -22,29 +22,38 @@ async function main() {
     },
   });
 
-  // Distribución inventada: reemplazar con los datos reales de la administración.
-  const parqueo = await db.parqueos.upsert({
-    where: { nombre: "Parqueo Principal" },
-    update: {},
-    create: { nombre: "Parqueo Principal", descripcion: "Parqueo de ejemplo para desarrollo", activo: true },
-  });
+  // Los cinco parqueos del mapa de ULACIT. Los cupos son inventados:
+  // reemplazar con los datos reales de la administración.
+  const parqueos = [
+    { nombre: "P1", descripcion: "Al sur del Ministerio de Trabajo, del otro lado de la Ruta 32", estudiantes: 90, profesores: 30 },
+    { nombre: "P2", descripcion: "Al este del edificio, junto a la Ruta 32", estudiantes: 70, profesores: 25 },
+    { nombre: "P3", descripcion: "El óvalo, junto a la clínica ULACIT", estudiantes: 50, profesores: 20 },
+    { nombre: "P4", descripcion: "Franja al norte del edificio", estudiantes: 25, profesores: 10 },
+    { nombre: "P5", descripcion: "Al norte del Museo de los Niños", estudiantes: 160, profesores: 40 },
+  ];
 
-  const zonas = [
-    { nombre: "A · Estudiantes", tipos_permitidos: ["estudiante"], cupos_moto: 10, cupos_sedan: 40, cupos_suv: 10 },
-    { nombre: "B · Profesores", tipos_permitidos: ["profesor", "funcionario"], cupos_sedan: 15, cupos_suv: 5, cupos_grande: 2 },
-    { nombre: "C · Visitas", tipos_permitidos: ["visita"], reservable: true, cupos_sedan: 8, cupos_suv: 2 },
-    { nombre: "D · Preferencial", tipos_permitidos: ["estudiante", "profesor", "funcionario", "visita"], preferencial: true, cupos_sedan: 2, cupos_suv: 2 },
-  ] as const;
-
-  for (const z of zonas) {
-    await db.zonas.upsert({
-      where: { parqueo_id_nombre: { parqueo_id: parqueo.id, nombre: z.nombre } },
+  for (const p of parqueos) {
+    const parqueo = await db.parqueos.upsert({
+      where: { nombre: p.nombre },
       update: {},
-      create: { ...z, tipos_permitidos: [...z.tipos_permitidos], parqueo_id: parqueo.id },
+      create: { nombre: p.nombre, descripcion: p.descripcion, activo: true },
     });
+    const zonas = [
+      { nombre: "A · Estudiantes", tipos_permitidos: ["estudiante"], cupos_moto: Math.round(p.estudiantes / 8), cupos_sedan: p.estudiantes, cupos_suv: Math.round(p.estudiantes / 6) },
+      { nombre: "B · Profesores", tipos_permitidos: ["profesor", "funcionario"], cupos_sedan: p.profesores, cupos_suv: 4, cupos_grande: 1 },
+      { nombre: "C · Visitas", tipos_permitidos: ["visita"], reservable: true, cupos_sedan: 6, cupos_suv: 2 },
+      { nombre: "D · Preferencial", tipos_permitidos: ["estudiante", "profesor", "funcionario", "visita"], preferencial: true, cupos_sedan: 2, cupos_suv: 2 },
+    ] as const;
+    for (const z of zonas) {
+      await db.zonas.upsert({
+        where: { parqueo_id_nombre: { parqueo_id: parqueo.id, nombre: z.nombre } },
+        update: {},
+        create: { ...z, tipos_permitidos: [...z.tipos_permitidos], parqueo_id: parqueo.id },
+      });
+    }
   }
 
-  console.log(`Super admin: ${correo}. Parqueo de ejemplo con ${zonas.length} zonas.`);
+  console.log(`Super admin: ${correo}. Parqueos ${parqueos.map((p) => p.nombre).join(", ")}.`);
 }
 
 main()

@@ -10,6 +10,7 @@ import {
   finDelDiaCR,
   inicioDelDiaCR,
   libresParaPublico,
+  nivelOcupacion,
   puedeUsarCupo,
 } from "./disponibilidad";
 
@@ -73,6 +74,15 @@ describe("disponibilidad (RN-06)", () => {
     expect(r.total).toBe(10);
   });
   it("el público no ve negativos", () => expect(libresParaPublico(-3)).toBe(0));
+  it("semáforo por ocupación (CU-01)", () => {
+    expect(nivelOcupacion(36, 100)).toBe("libre");
+    expect(nivelOcupacion(35, 100)).toBe("llenandose");
+    expect(nivelOcupacion(11, 100)).toBe("llenandose");
+    expect(nivelOcupacion(10, 100)).toBe("lleno");
+    expect(nivelOcupacion(0, 100)).toBe("lleno");
+    expect(nivelOcupacion(-2, 100)).toBe("lleno");
+    expect(nivelOcupacion(0, 0)).toBe("lleno");
+  });
   it("fin del día en hora de Costa Rica", () => {
     // 2026-11-10 23:00 en CR es 2026-11-11 05:00 UTC: sigue siendo el día 10.
     expect(finDelDiaCR(new Date("2026-11-11T05:00:00Z")).toISOString()).toBe("2026-11-11T05:59:59.999Z");

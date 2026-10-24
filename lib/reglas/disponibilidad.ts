@@ -66,6 +66,20 @@ export function libresParaPublico(n: number): number {
   return Math.max(0, n);
 }
 
+export type NivelOcupacion = "libre" | "llenandose" | "lleno";
+
+/**
+ * CU-01: color de semáforo para el público. Rojo desde el 90 % de ocupación
+ * (o sin libres), amarillo desde el 65 %. Sin capacidad cuenta como lleno.
+ */
+export function nivelOcupacion(libres: number, capacidad: number): NivelOcupacion {
+  if (capacidad <= 0 || libres <= 0) return "lleno";
+  const ocupacion = 1 - libres / capacidad;
+  if (ocupacion >= 0.9) return "lleno";
+  if (ocupacion >= 0.65) return "llenandose";
+  return "libre";
+}
+
 /** Ventana de entrada de una reserva (RN-09). */
 export function dentroDeVentana(inicio: Date, ahora: Date): boolean {
   const t = ahora.getTime();
