@@ -25,6 +25,7 @@ Proyecto del curso **16-0629 Metodologías Ágiles de Desarrollo** (ULACIT, III 
 | [Reglas de negocio](docs/reglas-de-negocio.md) | Reglas RN-xx, supuestos y pendientes |
 | [Estado del proyecto](docs/estado-del-proyecto.md) | Qué está hecho, qué está en revisión y qué falta |
 | [Bitácora](docs/bitacora/) | Registro cronológico de cada sesión de trabajo |
+| [Project UPark](https://github.com/users/EzWachi/projects/9) | Tablero con un issue por caso de uso y por tarea: qué está hecho, en curso y pendiente |
 | [Decisiones](docs/decisiones/) | Registro de decisiones de arquitectura (ADR), empezando por el [stack](docs/decisiones/0001-stack.md) |
 
 ## Desarrollo
