@@ -55,8 +55,8 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 | [#60](https://github.com/EzWachi/upark/pull/60) | Enlace al Project de seguimiento | Fusionado |
 | [#61](https://github.com/EzWachi/upark/pull/61) | Guía para retomar (`CLAUDE.md`) y bitácora del 24 de octubre | Fusionado |
 | [#62](https://github.com/EzWachi/upark/pull/62) | Mapa y semáforo de ocupación en la página principal (CU-01) | Fusionado |
-| Rama `feat/correo-resend` | Envío de correos con Resend y reenvío del acceso si falla (CU-38) | Sin PR todavía |
-| Rama `chore/next-16.4.6` | Next.js 16.4.2 → 16.4.6 por dos avisos de seguridad de `'use cache'` | Sin PR todavía |
+| [#63](https://github.com/EzWachi/upark/pull/63) | Envío de correos con Resend y reenvío del acceso si falla (CU-38) | En revisión |
+| [#64](https://github.com/EzWachi/upark/pull/64) | Next.js 16.4.2 → 16.4.6 por dos avisos de seguridad de `'use cache'` | En revisión |
 
 ### Estado de los casos de uso Must
 
@@ -111,7 +111,7 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 
 ### Inmediato
 
-1. **Abrir los PRs de `feat/correo-resend` (CU-38) y `chore/next-16.4.6`**, y pasar CU-38 a Done en el Project. Las ramas no se han subido porque falta instalar `gh`.
+1. **Fusionar [#63](https://github.com/EzWachi/upark/pull/63) (CU-38) y [#64](https://github.com/EzWachi/upark/pull/64) (Next.js 16.4.6)**, y pasar CU-38 a Done en el Project.
 2. **Dominio verificado en Resend.** Sin él, Resend solo entrega al correo dueño de la cuenta y no hay demo con personas reales.
 3. **Probar el escaneo con la cámara** en un teléfono, con https (Vercel o `next dev --experimental-https`).
 4. **Invitar a los compañeros** al repositorio y al Project.
