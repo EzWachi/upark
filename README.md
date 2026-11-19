@@ -34,7 +34,7 @@ Requisitos: Node 22 y PostgreSQL.
 
 ```bash
 npm install
-cp .env.example .env        # completar DATABASE_URL, AUTH_SECRET y el super admin
+cp .env.example .env        # completar DATABASE_URL, AUTH_SECRET y el super admin (RESEND_API_KEY es opcional)
 npx prisma migrate dev      # crea las tablas
 npx prisma db seed          # super admin y un parqueo de ejemplo
 npm run dev
@@ -58,6 +58,6 @@ Estructura:
 
 ## Estado
 
-- 25 de 26 casos de uso **Must** implementados: disponibilidad pública, cuentas y roles, parqueos y zonas, tarjeta virtual con QR, panel del guarda, invitaciones y reservas.
-- Pendiente: envío real de correos con Resend (CU-38); hoy se imprimen en la consola del servidor.
+- Los 26 casos de uso **Must** implementados: disponibilidad pública, cuentas y roles, parqueos y zonas, tarjeta virtual con QR, panel del guarda, invitaciones, reservas y envío de correos con Resend (CU-38).
+- Pendiente: dominio verificado en Resend para enviar a cualquier dirección, y el deploy.
 - Detalle en [estado del proyecto](docs/estado-del-proyecto.md).

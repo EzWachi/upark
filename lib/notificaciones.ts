@@ -6,13 +6,16 @@ import { fechaHoraTexto, horaTexto } from "@/lib/etiquetas";
 // Correos de cuentas (CU-38). Viven fuera de los archivos "use server" a
 // propósito: todo lo que se exporta desde uno de esos archivos se vuelve un
 // endpoint que cualquiera puede llamar.
+//
+// Cada una devuelve si el correo salió (CU-38, 3a), para que la acción pueda
+// avisar al admin y ofrecer el reenvío.
 
 type Persona = { id: string; nombre: string; correo: string };
 
 /** CU-02, paso 5 y 6a. */
 export async function correoVerificacion(p: Persona) {
   const token = await crearToken(p.id, "verificacion");
-  await enviarCorreo({
+  return enviarCorreo({
     para: p.correo,
     asunto: "Confirma tu correo en UPark",
     texto: [
@@ -29,7 +32,7 @@ export async function correoVerificacion(p: Persona) {
 /** CU-03, recuperar contraseña. */
 export async function correoRecuperacion(p: Persona) {
   const token = await crearToken(p.id, "recuperacion");
-  await enviarCorreo({
+  return enviarCorreo({
     para: p.correo,
     asunto: "Cambia tu contraseña de UPark",
     texto: [
@@ -46,7 +49,7 @@ export async function correoRecuperacion(p: Persona) {
 /** CU-24, paso 5 y CU-32, paso 4: primer acceso de guardas y administradores. */
 export async function correoAcceso(p: Persona, rol: string) {
   const token = await crearToken(p.id, "acceso");
-  await enviarCorreo({
+  return enviarCorreo({
     para: p.correo,
     asunto: "Tu acceso a UPark",
     texto: [
@@ -62,7 +65,7 @@ export async function correoAcceso(p: Persona, rol: string) {
 
 /** CU-22, paso 5 y 4a. */
 export async function correoResolucion(p: Persona, aprobada: boolean, motivo?: string) {
-  await enviarCorreo({
+  return enviarCorreo({
     para: p.correo,
     asunto: aprobada ? "Tu cuenta de UPark fue aprobada" : "Tu solicitud en UPark fue rechazada",
     texto: aprobada
@@ -80,7 +83,7 @@ const franjaTexto = (i: Franja) =>
 
 /** CU-25, 2a: el enlace de una invitación individual. */
 export async function correoInvitacion(para: string, nombre: string | null, inv: Franja & { token: string }) {
-  await enviarCorreo({
+  return enviarCorreo({
     para,
     asunto: "Reserva tu espacio de parqueo en ULACIT",
     texto: [
@@ -99,7 +102,7 @@ export async function correoReserva(
   r: { nombre: string; correo: string; placa: string; codigo: string; token_qr: string },
   inv: Franja,
 ) {
-  await enviarCorreo({
+  return enviarCorreo({
     para: r.correo,
     asunto: "Tu reserva de parqueo en ULACIT",
     texto: [
@@ -120,7 +123,7 @@ export async function correoReserva(
 
 /** CU-27, paso 6 y 5a. */
 export async function correoCancelacion(r: { nombre: string; correo: string }, inv: Franja) {
-  await enviarCorreo({
+  return enviarCorreo({
     para: r.correo,
     asunto: "Tu reserva de parqueo fue cancelada",
     texto: [

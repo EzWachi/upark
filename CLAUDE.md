@@ -30,7 +30,7 @@ Next.js 16.4 (App Router, `cacheComponents` activo), React 19, TypeScript, Prism
 | `lib/consultas/` | Consultas que combinan base y reglas (disponibilidad) |
 | `lib/auth/` | Auth.js y `exigirRol` / `usuarioActual` |
 | `lib/notificaciones.ts` | Todos los correos (`server-only`) |
-| `lib/correo.ts` | Envío; hoy imprime en consola (falta Resend, CU-38) |
+| `lib/correo.ts` | Envío por Resend con reintentos (CU-38); sin `RESEND_API_KEY` imprime en consola |
 | `components/` | Formularios (`useFormulario`), acciones de fila, escáner QR, marco de áreas (`Area`) |
 | `prisma/` | Schema, migraciones y seed (super admin + parqueo de ejemplo) |
 
@@ -45,7 +45,7 @@ npx prisma migrate dev
 npx prisma db seed
 ```
 
-Base local: Postgres en localhost, base `upark` (en `.env`). El mismo servidor tiene otras bases de otros proyectos: no tocarlas.
+Base local: Postgres en localhost, base `upark` (en `.env`). En la máquina de Jose corre en el contenedor Docker `upark_db`, puerto 5433 (`docker start upark_db` si está detenido). El mismo servidor tiene otras bases de otros proyectos: no tocarlas.
 
 ## Convenciones que importan
 
@@ -57,6 +57,7 @@ Base local: Postgres en localhost, base `upark` (en `.env`). El mismo servidor t
 - **Reglas:** la lógica que se pueda probar sin base va en `lib/reglas/` con su prueba. Los comentarios citan el caso de uso o la regla (`CU-13, 3b`, `RN-01`).
 - **Modelo:** tablas y campos en español y `snake_case`. RN-01 (una placa no puede estar dentro dos veces) lo garantiza un índice único parcial en la migración inicial.
 - **Hora:** Costa Rica es UTC-6 fijo. Ayudantes `inicioDelDiaCR`, `finDelDiaCR` y `fechaHoraCR`.
+- **Correos:** `enviarCorreo` nunca lanza y devuelve si salió. Si una acción crea algo y su correo no sale, devolver `{ aviso }` (no `error`, para que no se repita) con `CORREO_NO_SALIO` de `lib/acciones.ts`, y ofrecer el reenvío.
 
 ## Forma de trabajo
 
@@ -67,7 +68,10 @@ Base local: Postgres en localhost, base `upark` (en `.env`). El mismo servidor t
 
 ## Probar en el navegador
 
-- Los correos salen en la terminal de `npm run dev`; los enlaces apuntan a `APP_URL` (por defecto `http://localhost:3000`).
+- Sin `RESEND_API_KEY`, los correos salen en la terminal de `npm run dev`. Con ella salen por Resend, pero sin dominio verificado solo llegan al correo dueño de la cuenta de Resend; a otra dirección Resend responde 403 y el fallo queda en la terminal. Los enlaces apuntan a `APP_URL` (por defecto `http://localhost:3000`).
+- La clave de Resend empieza con `re_`. El UUID que se ve en la lista de claves es su ID y no sirve.
+- Las invitaciones aceptan cualquier correo; el registro solo los de `DOMINIOS_INSTITUCIONALES`. Solo las zonas reservables (las "C · Visitas" del seed) admiten invitaciones.
+- `next dev` revisa los avisos de seguridad de npm y puede ofrecer actualizar Next abriendo un agente. Hacerlo en una rama aparte. El agente hereda `NODE_ENV=development` de `next dev`, y con eso `npm run build` falla; en una terminal normal no pasa.
 - Super admin del seed: `superadmin@upark.local`, contraseña en `SUPERADMIN_PASSWORD` del `.env`.
 - Para probar con otros roles: crear usuarios temporales directo en la base (con `pg` y `bcryptjs`) y borrarlos al terminar, junto con sus movimientos, reservas y auditoría.
 - La entrada con reserva solo funciona desde 15 minutos antes del inicio de la franja hasta 30 minutos después.

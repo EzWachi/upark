@@ -3,7 +3,7 @@ import { Area } from "@/components/area";
 import { BotonFila } from "@/components/acciones-fila";
 import { db } from "@/lib/db";
 import { ESTADO_CUENTA, ROL } from "@/lib/etiquetas";
-import { agregarAdministrador, cambiarRolAdministrador, quitarRolAdministrador } from "./actions";
+import { agregarAdministrador, cambiarRolAdministrador, quitarRolAdministrador, reenviarAccesoAdministrador } from "./actions";
 import { FormularioPersona } from "../formulario-persona";
 
 async function Lista({ actorId }: { actorId: string }) {
@@ -32,6 +32,9 @@ async function Lista({ actorId }: { actorId: string }) {
                 accion={cambiarRolAdministrador.bind(null, a.id, a.rol === "admin" ? "super_admin" : "admin")}
                 texto={a.rol === "admin" ? "Hacer super admin" : "Hacer admin"}
               />
+              {!a.password_hash && a.estado === "aprobada" && (
+                <BotonFila accion={reenviarAccesoAdministrador.bind(null, a.id)} texto="Reenviar acceso" />
+              )}
               <BotonFila accion={quitarRolAdministrador.bind(null, a.id)} texto="Quitar rol" peligro />
             </div>
           )}
@@ -56,7 +59,7 @@ export default function Administradores() {
             <FormularioPersona accion={agregarAdministrador} boton="Agregar" conRol />
             <p className="mt-2 text-sm text-neutral-500">
               Si el correo ya tiene cuenta, se le asigna el rol. Si no, se crea la cuenta y le llega un enlace para
-              definir su contraseña.
+              definir su contraseña. Si la cuenta existe pero nunca definió contraseña, se le reenvía el enlace.
             </p>
           </section>
         </div>

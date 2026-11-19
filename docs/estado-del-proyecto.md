@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Registro de lo hecho hasta el 24 de octubre de 2026 (semana 7 del cuatrimestre) y de lo que falta. Se actualiza al cerrar cada etapa. El detalle tarea por tarea está en el [Project UPark](https://github.com/users/EzWachi/projects/9).
+Registro de lo hecho hasta el 19 de noviembre de 2026 (semana 11 del cuatrimestre) y de lo que falta. Se actualiza al cerrar cada etapa. El detalle tarea por tarea está en el [Project UPark](https://github.com/users/EzWachi/projects/9).
 
 [Volver al README](../README.md) · [Tablero (Project)](https://github.com/users/EzWachi/projects/9) · [Casos de uso](casos-de-uso/README.md) · [Reglas de negocio](reglas-de-negocio.md)
 
@@ -53,6 +53,10 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 | [#6](https://github.com/EzWachi/upark/pull/6) | Invitaciones (CU-25 a CU-27), reserva del invitado (CU-08, CU-09) y entrada con reserva (CU-12) | Fusionado |
 | [#7](https://github.com/EzWachi/upark/pull/7) | Bitácora de la sesión y README al día | Fusionado |
 | [#60](https://github.com/EzWachi/upark/pull/60) | Enlace al Project de seguimiento | Fusionado |
+| [#61](https://github.com/EzWachi/upark/pull/61) | Guía para retomar (`CLAUDE.md`) y bitácora del 24 de octubre | Fusionado |
+| [#62](https://github.com/EzWachi/upark/pull/62) | Mapa y semáforo de ocupación en la página principal (CU-01) | Fusionado |
+| [#63](https://github.com/EzWachi/upark/pull/63) | Envío de correos con Resend y reenvío del acceso si falla (CU-38) | En revisión |
+| [#64](https://github.com/EzWachi/upark/pull/64) | Next.js 16.4.2 → 16.4.6 por dos avisos de seguridad de `'use cache'` | En revisión |
 
 ### Estado de los casos de uso Must
 
@@ -79,7 +83,7 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 | CU-32 Gestionar administradores | Hecho |
 | CU-36 Calcular disponibilidad | Hecho |
 | CU-37 Liberar cupos vencidos | Hecho (se calcula con la hora, sin tarea programada) |
-| CU-38 Enviar correo | Parcial: se imprime en consola; falta Resend |
+| CU-38 Enviar correo | Hecho con Resend y reintentos (3a). Falta: avisar al admin cuando falla el correo de una invitación, registrar los envíos en la base (paso 4; hoy solo el log) y los rebotes (3b, necesitan webhook y la app publicada) |
 
 ### Problemas encontrados y corregidos al probar
 
@@ -94,10 +98,12 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 | Auth.js imprimía cada contraseña equivocada como error del servidor | `logger` que ignora `CredentialsSignin` |
 | Texto "a. m.." con doble punto en un mensaje | Mensaje reescrito |
 | Al borrar la rama del PR #2, GitHub cerró el PR #3 que apuntaba a ella | Se restauró la rama, se reabrió el #3 y se cambió su base a `main` |
+| Si el correo de acceso de un admin nuevo no salía, la cuenta quedaba sin contraseña; agregarla de nuevo solo cambiaba el rol y no reenviaba nada | Agregar de nuevo una cuenta sin contraseña reenvía el enlace, hay botón "Reenviar acceso" y la pantalla avisa cuando el correo no sale |
+| En `RESEND_API_KEY` se pegó el ID de la clave (un UUID) en vez de la clave (`re_...`), y Resend respondía 400 | Crear una clave nueva: Resend muestra el valor completo una sola vez |
 
 ### Calidad
 
-- 68 pruebas de reglas de negocio (`lib/reglas`), lint y build en el CI de cada PR.
+- 75 pruebas (reglas de negocio en `lib/reglas` y el envío de correo en `lib/correo.test.ts`), lint y build en el CI de cada PR.
 - Cada etapa se probó en el navegador con cuentas temporales, borradas al final.
 - No hay pruebas automáticas de las acciones contra la base de datos.
 
@@ -105,13 +111,14 @@ Repositorio privado: [EzWachi/upark](https://github.com/EzWachi/upark). Cada eta
 
 ### Inmediato
 
-1. **Enviar correos con Resend (CU-38).** Último Must; sin él no hay demo con personas reales.
-2. **Probar el escaneo con la cámara** en un teléfono, con https (Vercel o `next dev --experimental-https`).
-3. **Invitar a los compañeros** al repositorio y al Project.
+1. **Fusionar [#63](https://github.com/EzWachi/upark/pull/63) (CU-38) y [#64](https://github.com/EzWachi/upark/pull/64) (Next.js 16.4.6)**, y pasar CU-38 a Done en el Project.
+2. **Dominio verificado en Resend.** Sin él, Resend solo entrega al correo dueño de la cuenta y no hay demo con personas reales.
+3. **Probar el escaneo con la cámara** en un teléfono, con https (Vercel o `next dev --experimental-https`).
+4. **Invitar a los compañeros** al repositorio y al Project.
 
 ### Casos de uso Must que faltan
 
-- Envío real de correos con Resend (CU-38). Es el único Must pendiente; hoy los correos se imprimen en la consola del servidor.
+- Los 26 están implementados. De CU-38 quedan el aviso de correos de invitación que fallan, el registro de envíos en la base y los rebotes (3b).
 
 ### Casos Should y ajustes
 
