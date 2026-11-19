@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { z } from "zod";
 import type { Resultado } from "@/components/formulario";
-import { esDuplicado } from "@/lib/acciones";
+import { CORREO_NO_SALIO, REENVIO_NO_SALIO, esDuplicado } from "@/lib/acciones";
 import { exigirRol } from "@/lib/auth/sesion";
 import { db } from "@/lib/db";
 import { ROL } from "@/lib/etiquetas";
@@ -23,11 +23,18 @@ export async function agregarAdministrador(_prev: Resultado, form: FormData): Pr
 
   const existente = await db.usuarios.findUnique({ where: { correo: correo.data } });
   if (existente) {
-    if (existente.rol === rol.data) return { error: `Esa persona ya es ${ROL[rol.data]}.` };
+    // Sin contraseña nunca pudo entrar (por ejemplo, si el primer correo no
+    // salió): agregarla de nuevo le reenvía el enlace en vez de dejarla atrapada.
+    const sinContrasena = !existente.password_hash;
+    if (existente.rol === rol.data && !sinContrasena) return { error: `Esa persona ya es ${ROL[rol.data]}.` };
     // Una cuenta con rol de administración tiene que estar habilitada para usarlo.
     await db.usuarios.update({ where: { id: existente.id }, data: { rol: rol.data, estado: "aprobada" } });
     refresh();
-    return { ok: `${existente.nombre} ahora es ${ROL[rol.data]}.` };
+    const hecho = `${existente.nombre} ${existente.rol === rol.data ? "ya era" : "ahora es"} ${ROL[rol.data]}.`;
+    if (!sinContrasena) return { ok: hecho };
+    return (await correoAcceso(existente, ROL[rol.data]))
+      ? { ok: `${hecho} Como no tenía contraseña, le enviamos el enlace para definirla.` }
+      : { aviso: `${hecho} ${CORREO_NO_SALIO}` };
   }
 
   const nombre = String(form.get("nombre") ?? "").trim();
@@ -40,9 +47,21 @@ export async function agregarAdministrador(_prev: Resultado, form: FormData): Pr
     if (esDuplicado(e)) return { error: "Ya existe una cuenta con ese correo." };
     throw e;
   }
-  await correoAcceso(nuevo, ROL[rol.data]);
+  const enviado = await correoAcceso(nuevo, ROL[rol.data]);
   refresh();
-  return { ok: `Cuenta creada. Le enviamos a ${nuevo.correo} el enlace para definir su contraseña.` };
+  return enviado
+    ? { ok: `Cuenta creada. Le enviamos a ${nuevo.correo} el enlace para definir su contraseña.` }
+    : { aviso: `Cuenta creada. ${CORREO_NO_SALIO}` };
+}
+
+/** CU-32, paso 4 y CU-38, 3a: reenviar el enlace a quien todavía no define su contraseña. */
+export async function reenviarAccesoAdministrador(id: string): Promise<Resultado> {
+  await exigirRol("super_admin");
+  const admin = await db.usuarios.findFirst({
+    where: { id, rol: { in: ["admin", "super_admin"] }, estado: "aprobada", password_hash: null },
+  });
+  if (!admin) return { error: "Esa persona ya definió su contraseña o ya no es administrador." };
+  return (await correoAcceso(admin, ROL[admin.rol])) ? { ok: "Enlace reenviado." } : { error: REENVIO_NO_SALIO };
 }
 
 /** CU-32, 3a a 3c. */

@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import type { Resultado } from "@/components/formulario";
-import { esDuplicado, primerError } from "@/lib/acciones";
+import { CORREO_NO_SALIO, REENVIO_NO_SALIO, esDuplicado, primerError } from "@/lib/acciones";
 import { exigirRol } from "@/lib/auth/sesion";
 import { db } from "@/lib/db";
 import { correoAcceso } from "@/lib/notificaciones";
@@ -41,9 +41,11 @@ export async function crearGuarda(_prev: Resultado, form: FormData): Promise<Res
       : { error: "Ya existe una cuenta con ese correo o identificación." };
   }
 
-  await correoAcceso(guarda, "guarda");
+  const enviado = await correoAcceso(guarda, "guarda");
   refresh();
-  return { ok: `Guarda creado. Le enviamos a ${guarda.correo} el enlace para definir su contraseña.` };
+  return enviado
+    ? { ok: `Guarda creado. Le enviamos a ${guarda.correo} el enlace para definir su contraseña.` }
+    : { aviso: `Guarda creado. ${CORREO_NO_SALIO}` };
 }
 
 /** CU-24, desactivar: sus registros se conservan y no puede volver a entrar. */
@@ -63,6 +65,5 @@ export async function reenviarAccesoGuarda(id: string): Promise<Resultado> {
   await exigirRol("admin");
   const guarda = await db.usuarios.findFirst({ where: { id, rol: "guarda", estado: "aprobada" } });
   if (!guarda) return { error: "El guarda no está activo." };
-  await correoAcceso(guarda, "guarda");
-  return { ok: "Enlace reenviado." };
+  return (await correoAcceso(guarda, "guarda")) ? { ok: "Enlace reenviado." } : { error: REENVIO_NO_SALIO };
 }
