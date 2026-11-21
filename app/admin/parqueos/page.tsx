@@ -41,6 +41,9 @@ export default function Parqueos() {
     <Area titulo="Parqueos" roles={["super_admin"]}>
       {() => (
         <div className="space-y-8">
+          <Link href="/admin" className="text-sm underline">
+            ← Administración
+          </Link>
           <Lista />
           <section>
             <h2 className="mb-3 text-lg font-semibold">Agregar parqueo</h2>
