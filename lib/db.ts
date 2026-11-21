@@ -7,10 +7,14 @@ declare global {
 
 // Pocas conexiones por instancia: en producción el pooler de Neon o Supabase
 // es el que multiplexa.
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-  max: Number(process.env.DATABASE_POOL_MAX ?? 5),
-});
+// El adaptador pg ignora `?schema=` del URL (Prisma Migrate sí lo usa), así
+// que se le pasa aparte. Permite tener UPark en un schema propio, no `public`.
+const url = process.env.DATABASE_URL;
+const schema = url ? new URL(url).searchParams.get("schema") ?? undefined : undefined;
+const adapter = new PrismaPg(
+  { connectionString: url, max: Number(process.env.DATABASE_POOL_MAX ?? 5) },
+  { schema },
+);
 
 export const db = global.prisma ?? new PrismaClient({ adapter });
 
